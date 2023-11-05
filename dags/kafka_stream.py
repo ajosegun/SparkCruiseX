@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 
 default_args = {
-    'owner': 'airscholar',
+    'owner': 'ajosegun',
     'start_date': datetime(2023, 9, 3, 10, 00)
 }
 
@@ -39,16 +39,25 @@ def stream_data():
     import json
     from kafka import KafkaProducer
     import time
-
-    res = get_data()
-    res = format_data(res)
+    import logging
 
     producer = KafkaProducer(bootstrap_servers=['broker:29092'], 
                              max_block_ms=5000)
+    curr_time = time.time()
+    while True:
+        ## run for only 1 minute
+        if time.time() > curr_time + 60:
+            break
 
-    producer.send('users_created', 
-                  json.dumps(res).encode('utf-8'))
+        try:
+            res = get_data()
+            res = format_data(res)
 
+            producer.send('users_created', json.dumps(res).encode('utf-8'))
+            
+        except Exception as e:
+            logging.error(f"An error occured: {e}")
+            continue
 
 with DAG('user_automation',
          default_args=default_args,
@@ -60,4 +69,5 @@ with DAG('user_automation',
         python_callable=stream_data
     )
 
-stream_data()
+# stream_data()
+# stream_task
